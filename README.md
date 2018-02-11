@@ -1,4 +1,4 @@
-<img src="resources/logo.png" width="300">
+<img src="resources/logo.png" alt="LINQ++ logo" width="300" style="margin: auto;">
 
 ## Presentation
 
