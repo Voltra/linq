@@ -1,4 +1,4 @@
-<div style="text-align: center"><img src="resources/logo.png" alt="LINQ++ logo" width="300"></div>
+<p style="text-align: center;"><img src="resources/logo.png" alt="LINQ++ logo" width="300"></p>
 
 ## Presentation
 
