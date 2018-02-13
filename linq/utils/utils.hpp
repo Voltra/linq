@@ -9,6 +9,9 @@ namespace linq{
 	namespace utils{};
 };
 
+#include "reducers/reducers.hpp"
+#include "helperFunctions/helperFunctions.hpp"
+
 #include "VectorContainsAtIndex.h"
 #include "VectorContainsElem.h"
 

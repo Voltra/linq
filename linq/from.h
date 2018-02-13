@@ -13,12 +13,9 @@ namespace linq{
 	 * @return a Linqable made from the elements contained in the container
 	 */
 	template <class T, class It>
-	Linqable<T> from(It begin, It end);
-};
-
-template <class T, class It>
-linq::Linqable<T> linq::from(It begin, It end){
-	return Linqable<T>::from(begin, end);
+	inline Linqable<T> from(It begin, It end){
+		return Linqable<T>::from(begin, end);
+	};
 };
 
 #endif //LINQ_FROM_H
