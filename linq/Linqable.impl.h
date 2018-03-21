@@ -12,13 +12,10 @@
 #define constructor className
 
 #define TEMPLATE template <class T>
+#define MAP_TPL TEMPLATE template <class ReturnType>
 #define ITER_TPL TEMPLATE template <class It>
-#define PREDICATE_TPL TEMPLATE template <class Predicate>
-#define WHEREBUILDER_TPL TEMPLATE template <class WhereBuilder>
-#define MAP_RET_TPL TEMPLATE template <class Mapper, class ReturnType>
-#define MAPPER_TPL TEMPLATE template <class Mapper>
-#define TRANSFORMER_TPL TEMPLATE template <class Transformer>
-#define REDUCER_TPL TEMPLATE template <class ReturnType, class Reducer>
+#define TRANSFORMER_TPL TEMPLATE template <class Member>
+#define REDUCER_TPL TEMPLATE template <class ReturnType>
 
 #define CONTAINER_OF std::vector
 #define CONTAINER CONTAINER_OF<T>
@@ -120,6 +117,9 @@ int self::length() const{ return this->currentlySelected.size(); }
 TEMPLATE
 int self::size() const{ return this->length(); }
 
+TEMPLATE
+int self::count() const{ return this->length(); }
+
 
 
 /****************************************************************************\
@@ -156,8 +156,8 @@ self& self::operator=(const self& rhs){
 	/****************************************************************************\
 	 * WHERE operations
 	\****************************************************************************/
-PREDICATE_TPL
-self self::where(Predicate predicate) const{
+TEMPLATE
+self self::where(self::Predicate predicate) const{
 	CONTAINER tmp = {};
 	std::copy_if(
 		this->begin(),
@@ -171,8 +171,8 @@ self self::where(Predicate predicate) const{
 	return self::getNext(thisCopy);
 };
 
-PREDICATE_TPL
-self self::orWhere(Predicate predicate) const{
+TEMPLATE
+self self::orWhere(self::Predicate predicate) const{
 	CONTAINER tmp = {};
 	std::copy_if(
 		this->oldOriginals.begin(),
@@ -193,11 +193,11 @@ self self::orWhere(Predicate predicate) const{
 	return self(copy);
 };
 
-PREDICATE_TPL
-self self::andWhere(Predicate predicate) const{ return this->where(predicate); }
+TEMPLATE
+self self::andWhere(self::Predicate predicate) const{ return this->where(predicate); }
 
-WHEREBUILDER_TPL
-self self::andComplexWhere(WhereBuilder f) const{
+TEMPLATE
+self self::andComplexWhere(self::WhereBuilder f) const{
 	self built = f(*this);
 	/*auto contained = [&](const T& elem){
 		return std::find(built.begin(), built.end(), elem) != built.end();
@@ -208,8 +208,8 @@ self self::andComplexWhere(WhereBuilder f) const{
 	/****************************************************************************\
 	 * SELECT operations
 	\****************************************************************************/
-MAP_RET_TPL
-thisClass<ReturnType> self::select(Mapper mapper) const{
+MAP_TPL
+thisClass<ReturnType> self::select(std::function<ReturnType(T)> mapper) const{
 	CONTAINER_OF<ReturnType> tmp = {};
 	std::transform(
 		this->begin(),
@@ -218,14 +218,15 @@ thisClass<ReturnType> self::select(Mapper mapper) const{
 		mapper
 	);
 
-	thisClass<ReturnType> ret;
-	ret.currentlySelected = tmp;
-	ret.originals = tmp;
+	thisClass<ReturnType> ret = thisClass<ReturnType>::fromContainer(tmp);
+//	ret.currentlySelected = tmp;
+//	ret.originals = tmp;
+//	ret.oldOriginals = tmp;
 	return ret;
 }
 
-MAPPER_TPL
-self self::select(Mapper mapper) const{
+TEMPLATE
+self self::select(self::SelfMapper mapper) const{
 	CONTAINER tmp = {};
 	std::transform(
 		this->begin(),
@@ -248,7 +249,7 @@ self self::select() const{
 }
 
 REDUCER_TPL
-ReturnType self::selectReduced(Reducer reducer, const ReturnType& acc) const{
+ReturnType self::selectReduced(std::function<ReturnType(ReturnType, T)> reducer, const ReturnType& acc) const{
 	ReturnType accumulator = acc;
 	for(T elem : *this)
 		accumulator = reducer(accumulator, elem);
@@ -260,12 +261,12 @@ ReturnType self::selectReduced(Reducer reducer, const ReturnType& acc) const{
 	 * ORDER BY operations
 	\****************************************************************************/
 TRANSFORMER_TPL
-self self::orderAscBy(Transformer f) const{
+self self::orderAscBy(std::function<Member(T)> f) const{
 	self copy{this};
 	std::sort(
 		copy->begin(),
 		copy->end(),
-		utilsNamespace::TransformerLessThanComparator<T, Transformer>(f)
+		utilsNamespace::TransformerLessThanComparator<T, decltype(f)>(f)//std::function<Member(T)>
 	);
 
 	return self(copy);
@@ -273,17 +274,17 @@ self self::orderAscBy(Transformer f) const{
 
 TEMPLATE
 self self::orderAsc() const{
-	return this->orderAscBy(utilsNamespace::identityOf<T>());
+	return this->orderAscBy<T>(utilsNamespace::identityOf<T>());
 }
 
 TRANSFORMER_TPL
-self self::orderDescBy(Transformer f) const{
+self self::orderDescBy(std::function<Member(T)> f) const{
 	self copy{this};
 
 	std::sort(
-			copy->begin(),
-			copy->end(),
-			utilsNamespace::TransformerGreaterThanComparator<T, Transformer>(f)
+		copy->begin(),
+		copy->end(),
+		utilsNamespace::TransformerGreaterThanComparator<T, decltype(f)>(f) //std::function<Member(T)>
 	);
 
 	return self(copy);
@@ -291,7 +292,7 @@ self self::orderDescBy(Transformer f) const{
 
 TEMPLATE
 self self::orderDesc() const{
-	return this->orderDescBy(utilsNamespace::identityOf<T>());
+	return this->orderDescBy<T>(utilsNamespace::identityOf<T>());
 }
 
 	/****************************************************************************\
@@ -393,22 +394,22 @@ std::forward_list<T> self::packToForwardList() const{
  * Container Concept
 \****************************************************************************/
 TEMPLATE
-typename CONTAINER::const_iterator self::begin() const{ return this->currentlySelected.begin(); }
+typename self::const_iterator self::begin() const{ return this->currentlySelected.begin(); }
 
 TEMPLATE
-typename CONTAINER::iterator self::begin(){ return this->currentlySelected.begin(); }
+typename self::iterator self::begin(){ return this->currentlySelected.begin(); }
 
 TEMPLATE
-typename CONTAINER::const_iterator self::end() const{ return this->currentlySelected.end(); }
+typename self::const_iterator self::end() const{ return this->currentlySelected.end(); }
 
 TEMPLATE
-typename CONTAINER::iterator self::end(){ return this->currentlySelected.end(); }
+typename self::iterator self::end(){ return this->currentlySelected.end(); }
 
 TEMPLATE
-typename CONTAINER::const_iterator self::cbegin() const{ return this->currentlySelected.cbegin(); }
+typename self::const_iterator self::cbegin() const{ return this->currentlySelected.cbegin(); }
 
 TEMPLATE
-typename CONTAINER::const_iterator self::cend() const{ return this->currentlySelected.cend(); }
+typename self::const_iterator self::cend() const{ return this->currentlySelected.cend(); }
 
 TEMPLATE
 T self::operator[](int index) const{ return this->currentlySelected[index]; }
@@ -441,11 +442,8 @@ bool self::empty() const{ return this->currentlySelected.empty(); }
 #undef constructor
 
 #undef TEMPLATE
-#undef PREDICATE_TPL
 #undef ITER_TPL
-#undef WHEREBUILDER_TPL
-#undef MAPPER_TPL
-#undef MAP_RET_TPL
+#undef MAP_TPL
 #undef TRANSFORMER_TPL
 #undef REDUCER_TPL
 

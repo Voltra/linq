@@ -13,12 +13,26 @@ void testLinqable();
 void testLinqable2();
 void testLinqable3();
 void testLinqable4();
+void testLinqable5();
+
+class Employe{
+	protected:
+		string name;
+		bool lives;
+
+	public:
+		Employe(string name, bool lives = true) : name{name}, lives{lives}{}
+
+		bool isAlive(){ return this->lives; }
+		string getName(){ return this->name; }
+};
 
 int main() {
 //	testLinqable();
 //	testLinqable2();
 //	testLinqable3();
-	testLinqable4();
+//	testLinqable4();
+	testLinqable5();
 	return 0;
 }
 
@@ -59,7 +73,7 @@ void testLinqable(){
 
 void testLinqable2(){
 	vector<int> arr = {0,1,2,3,4,5,6,7,8,9};
-	set<int> linqed = linq::from<int>(arr.begin(), arr.end())
+	vector<int> linqed = linq::from<int>(arr.begin(), arr.end())
 	->where(isEven<int>)
 	->orWhere(is(1))
 	->andWhere([](const int& elem)->bool{ return true; })
@@ -68,7 +82,7 @@ void testLinqable2(){
 		->orWhere(isLessThanOrEqualTo(2));
 	})->orderDesc()
 	->select()
-	->packToSet();
+	->packToVector();
 
 	/********************\
 	 * Equivalent:
@@ -96,7 +110,7 @@ void testLinqable2(){
 
 void testLinqable3(){
 	vector<int> arr = {0,1,2,3,4,5,6,7,8,9};
-	set<int> linqed = linq::from<int>(arr.begin(), arr.end())
+	vector<int> linqed = linq::from<int>(arr.begin(), arr.end())
 	->where(isEven<int>)
 	->orWhere(is(1))
 	->andWhere([](const int& elem)->bool{ return true; })
@@ -104,7 +118,7 @@ void testLinqable3(){
 	->orWhere(isLessThanOrEqualTo(2))
 	->orderDesc()
 	->select()
-	->packToSet();
+	->packToVector();
 
 	/********************\
 	 * Equivalent:
@@ -122,7 +136,7 @@ void testLinqable3(){
 	 * select elem
 	 *
 	 * //Expected result
-	 * {0,1,2,3,4,5,6,7,8,9} => ? (this implementation -> {0,1,2,6,8} or (8,6,4,2,1,0))
+	 * {0,1,2,3,4,5,6,7,8,9} => ? (this implementation -> {0,1,2,6,8} or (8,6,2,1,0))
 	\********************/
 
 	for(int i : linqed)
@@ -138,7 +152,7 @@ void testLinqable4(){
 	->orWhere(is(1))
 	->andWhere([](const int& elem)->bool{ return true; })
 	->orderDesc()
-	->selectReduced(reducers::ints::sum, 0);
+	->selectReduced<int>(reducers::ints::sum, 0);
 
 	/********************\
 	 * Equivalent:
@@ -160,4 +174,22 @@ void testLinqable4(){
 	\********************/
 
 	cout << linqed;
+}
+
+
+void testLinqable5(){
+	vector<Employe> vect = {};
+	bool isAlive = true;
+	for(char c='a' ; c <= 'z' ; c+=1) {
+		vect.push_back(Employe{string{c}, isAlive});
+		isAlive = !isAlive;
+	}
+
+	string names = linq::from<Employe>(vect.begin(), vect.end())
+	->where(&Employe::isAlive)
+	->select<string>(&Employe::getName)
+	->select<string>([](string s){ return s + " "; })
+	->selectReduced<string>(reducers::strings::concat, string{});
+
+	std::cout << names;
 }

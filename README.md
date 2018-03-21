@@ -2,15 +2,53 @@
 
 ## Quick introduction
 
-LINQ++ is a (headers only) C++11 library that aims to emulate the behavior from LINQ in other languages such as C#.
+LINQ++ is a (headers only) C++11 library that aims to emulate the behavior of LINQ in other languages such as C#.
 
 Collection manipulation in C++ is often painful, LINQ++ makes it way easier.
-
-
 
 ## Features
 
 These are the features that are currently supported :
+
+
+
+### Types declarations
+
+* `linq::Linqable<T>::value_type` : The type of the elements of this `Linqable`
+
+* `linq::Linqable<T>::reference` : Equivalent to `T&`
+
+* `linq::Linqable<T>::ref` : Alias for the above
+
+* `linq::Linqable<T>::const_reference` : Equivalent to `const T&`
+
+* `linq::Linqable<T>::const_ref` : Equivalent to the above
+
+* `linq::Linqable<T>::pointer` : Equivalent to `T*`
+
+* `linq::Linqable<T>::ptr` : An alias for `linq::Linqable<T>::pointer`
+
+* `linq::Linqable<T>::const_pointr` : Equivalent to `const T*`
+
+* `linq::Linqable<T>::const_ptr` : An alias for `linq::Linqable<T>::const_ptr`
+
+  ​
+
+* `linq::Linqable<T>::container` : The type of container used by the `Linqable`
+
+* `linq::Linqable<T>::iterator` : The type of iterators to a `Linqable`
+
+* `linq::Linqable<T>::const_iterator` : The type of iterators (const-aware) to a `Linqable`
+
+  ​
+
+* `linq::Linqable<T>::Predicate` : A predicate that takes a `T` as argument
+
+* `linq::Linqable<T>::WhereBuilder` : A function that takes a `linq::Linqable<T>` and returns a `linq::Linqable<T>`
+
+* `linq::Linqable<T>::SelfMapper` : A function that takes a `T` and returns a `T`
+
+
 
 ### Construction (FROM operations)
 
@@ -22,7 +60,7 @@ These are the features that are currently supported :
 ### Selection/Filtering (WHERE operations)
 
 * `linq::Linqable<T> linq::Linqable<T>::where(Predicate p)` : The method usually used to start the selection sequence (chaining WHERE operations), only the elements that match the predicate `p` (`T => bool`) will be kept
-* `linq::Linqable<T> linq::Linqable<T>::orWhere(Predicate p)` : Adds elements from the previous selection that match the given predicate
+* `linq::Linqable<T> linq::Linqable<T>::orWhere(linq::Linqable<T>::Predicate p)` : Adds elements from the previous selection that match the given predicate
 * `linq::Linqable<T> linq::Linqable<T>::andWhere(Predicate p)` : An alias to `where` usually used after the first (and supposedly only) `where` in order to add an additionnal filter to the current selection
 * `linq::Linqable<T> linq::Linqable<T>::andComplexWhere(WhereBuilder wb)` : Used to make selection sub-operations (for instance, in `WHERE a AND (b OR C)`, `(b OR C)` would usually require a sub-operation). `wb` is a function that is `Linqable<T> => Linqable<T>`
 
@@ -141,13 +179,13 @@ Let's have an example, shall we ?
 
 ```c++
 #include "linq/linq.hpp"
-#include <vector>
+#include <set>
 #include <forward_list>
 
 using namespace std;
 using namespace linq::utils::helperFunctions;
 
-vector<int> arr = {0,1,2,3,4,5,6,7,8,9};
+set<int> arr = {0,1,2,3,4,5,6,7,8,9};
 forward_list<int> linqed = linq::from<int>(arr.begin(), arr.end())
 ->where(isEven<int>) //I want even numbers only
 ->orWhere(is(1)) //But if there are any 1s, keep them
@@ -177,5 +215,43 @@ from elem in arr
 where (elem%2==0 || elem==1) && true
 orderby elem descending
 select elem
+```
+
+
+
+
+
+As of v1.0.2, you can use member functions in order to ease your job at manipulating collections of objects :
+
+```c++
+#include <string>
+
+using namespace std;
+using namespace linq::utils::helperFunctions;
+
+class RandomPelo{
+	protected:
+		string name;
+		bool lives;
+
+	public:
+		Employe(string name, bool lives = true) : name{name}, lives{lives}{}
+
+		bool isAlive(){ return this->lives; }
+		string getName(){ return this->name; }
+};
+
+vector<RandomPelo> vect = {};
+bool isAlive = true;
+for(char c='a' ; c <= 'z' ; c+=1) {
+    vect.push_back( RandomPelo{string{c}, isAlive} );
+    isAlive = !isAlive;
+}
+
+string names = linq::from<RandomPelo>(vect.begin(), vect.end())
+->where(&RandomPelo::isAlive) //I only want to keep those who are alive
+->select<string>(&RandomPelo::getName) //I want to retrieve their name
+->select<string>([](string s){ return s + " "; }) //I want to add a blank space after their name
+->selectReduced<string>(reducers::strings::concat, string{}); //I want to concatenate their name
 ```
 

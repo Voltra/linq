@@ -6,6 +6,7 @@
 #include <set>
 #include <deque>
 #include <forward_list>
+#include <functional>
 #include "utils/utils.hpp"
 
 #define CONTAINER std::vector<T>
@@ -21,6 +22,26 @@ namespace linq{
 	 */
 	template <class T>
 	class Linqable {
+		public:
+			using value_type = T;
+			using reference = T&;
+			using ref = reference;
+			using const_reference = const T&;
+			using const_ref = const_reference;
+			using pointer = T*;
+			using ptr = pointer;
+			using const_pointer = const T*;
+			using const_ptr = const_pointer;
+
+			using container = CONTAINER;
+			using iterator = typename container::iterator;
+			using const_iterator = typename container::const_iterator;
+
+
+			using Predicate = std::function<bool(T)>;
+			using WhereBuilder = std::function<Linqable<T>(Linqable<T>)>;
+			using SelfMapper = std::function<T(T)>;
+
 		protected:
 			/****************************************************************************\
 			 * Members
@@ -100,6 +121,7 @@ namespace linq{
 			static self getNext(self* previous);
 
 
+		public:
 			/****************************************************************************\
 			 * Helpers
 			\****************************************************************************/
@@ -110,7 +132,6 @@ namespace linq{
 			 */
 			static self fromContainer(const CONTAINER& content);
 
-		public:
 			/****************************************************************************\
 			 * Destructor
 			\****************************************************************************/
@@ -158,6 +179,12 @@ namespace linq{
 			 */
 			int size() const;
 
+			/**
+			 * Retrieve the amount of element contained in this Linqable
+			 * @return the amount of element contained in this Linqable
+			 */
+			int count() const;
+
 
 
 			/****************************************************************************\
@@ -197,38 +224,30 @@ namespace linq{
 				\****************************************************************************/
 			/**
 			 * Filters the Linqable to keep the elements that satisfy the given predicate, uses the currently selected elements
-			 * @tparam Predicate being a type for a predicate function -->  T=>bool
 			 * @param predicate being the selection predicate
 			 * @return a new filtered Linqable
 			 */
-			template <class Predicate>
 			self where(Predicate predicate) const;
 
 			/**
 			 * Chain to adds the elements that satisfied the given predicate to this Linqable (no duplicates), uses the original elements
-			 * @tparam Predicate being a type for a predicate function -->  T=>bool
 			 * @param predicate being the selection predicate
 			 * @return a new Linqable
 			 */
-			template <class Predicate>
 			self orWhere(Predicate predicate) const;
 
 			/**
 			 * Chain a where selection operation
-			 * @tparam Predicate being a type for a predicate function -->  T=>bool
 			 * @param predicate being the selection predicate
 			 * @return a new filtered Linqable
 			 */
-			template <class Predicate>
 			self andWhere(Predicate predicate) const;
 
 			/**
 			 * Subquery to filter this Linqable
-			 * @tparam WhereBuilder being a function --> Linqable<T> => Linqable<T>
 			 * @param f being the WhereBuilder
 			 * @return a new filtered Linqable
 			 */
-			template <class WhereBuilder>
 			self andComplexWhere(WhereBuilder f) const;
 
 
@@ -243,17 +262,15 @@ namespace linq{
 			 * @param mapper being the mapper function used to map the currently selected elements
 			 * @return a new Linqable of mapped elements
 			 */
-			template <class Mapper, class ReturnType>
-			className<ReturnType> select(Mapper mapper) const;
+			template <class ReturnType>
+			className<ReturnType> select(std::function<ReturnType(T)> mapper) const;
 
 			/**
 			 * Maps the currently selected elements to the same type
-			 * @tparam Mapper being a function --> T=>T
 			 * @param mapper being the mapper function used to map the currently selected elements
 			 * @return a new Linqable of mapped elements
 			 */
-			template <class Mapper>
-			self select(Mapper mapper) const;
+			self select(SelfMapper mapper) const;
 
 			/**
 			 * Selects the currently selected elements
@@ -269,8 +286,8 @@ namespace linq{
 			 * @param acc being the initial value of the accumulator
 			 * @return the reduced value
 			 */
-			template <class ReturnType, class Reducer>
-			ReturnType selectReduced(Reducer reducer, const ReturnType& acc) const;
+			template <class ReturnType>
+			ReturnType selectReduced(std::function<ReturnType(ReturnType, T)> reducer, const ReturnType& acc) const;
 
 
 
@@ -283,8 +300,8 @@ namespace linq{
 			 * @param f being a transformer function
 			 * @return a new Linqable ordered using the given transformer function
 			 */
-			template <class Transformer>
-			self orderAscBy(Transformer f) const;
+			template <class Member>
+			self orderAscBy(std::function<Member(T)> f) const;
 
 			/**
 			 * Order the elements in ascending order without transformation (uses operator<)
@@ -298,8 +315,8 @@ namespace linq{
 			 * @param f being a transformer function
 			 * @return a new Linqable ordered using the given transformer function
 			 */
-			template <class Transformer>
-			self orderDescBy(Transformer f) const;
+			template <class Member>
+			self orderDescBy(std::function<Member(T)> f) const;
 
 			/**
 			 * Order the elements in ascending order without transformation (uses operator>)
@@ -372,13 +389,13 @@ namespace linq{
 			 */
 			T operator[](int index) const;
 
-			typename CONTAINER::iterator begin();
-			typename CONTAINER::const_iterator begin() const;
-			typename CONTAINER::iterator end();
-			typename CONTAINER::const_iterator end() const;
+			typename self::iterator begin();
+			typename self::const_iterator begin() const;
+			typename self::iterator end();
+			typename self::const_iterator end() const;
 
-			typename CONTAINER::const_iterator cbegin() const;
-			typename CONTAINER::const_iterator cend() const;
+			typename self::const_iterator cbegin() const;
+			typename self::const_iterator cend() const;
 
 			bool operator==(const self& other) const;
 			bool operator!=(const self& other) const;
