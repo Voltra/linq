@@ -8,36 +8,37 @@
 #define utilsNamespace thisNamespace::utils
 #define className Linqable
 #define thisClass thisNamespace::className
-#define self thisClass<T>
+#define self thisClass<T, Container>
 #define constructor className
 
-#define TEMPLATE template <class T>
+#define TEMPLATE template <class T, template <class...> class Container>
 #define MAP_TPL TEMPLATE template <class ReturnType>
 #define ITER_TPL TEMPLATE template <class It>
 #define TRANSFORMER_TPL TEMPLATE template <class Member>
 #define REDUCER_TPL TEMPLATE template <class ReturnType>
 
-#define CONTAINER_OF std::vector
+#define CONTAINER_OF Container
 #define CONTAINER CONTAINER_OF<T>
+//CONTAINER_OF<T>
 
 /****************************************************************************\
  * Init members
 \****************************************************************************/
 TEMPLATE
 self& self::emptyCurrents(){
-	this->currentlySelected = {};
+	this->currentlySelected = CONTAINER{};
 	return *this;
 }
 
 TEMPLATE
 self& self::emptyOriginals(){
-	this->originals = {};
+	this->originals = CONTAINER{};
 	return *this;
 }
 
 TEMPLATE
 self& self::emptyOldOriginals(){
-	this->oldOriginals = {};
+	this->oldOriginals = CONTAINER{};
 	return *this;
 }
 
@@ -128,8 +129,8 @@ int self::count() const{ return this->length(); }
 TEMPLATE
 self::constructor(const self& other) : constructor(){ (*this) = other; }
 
-TEMPLATE
-self::constructor(const self* other) : constructor(*other){}
+/*TEMPLATE
+self::constructor(const self* other) : constructor(*other){}*/
 
 
 
@@ -158,7 +159,7 @@ self& self::operator=(const self& rhs){
 	\****************************************************************************/
 TEMPLATE
 self self::where(self::Predicate predicate) const{
-	CONTAINER tmp = {};
+	CONTAINER tmp{};
 	std::copy_if(
 		this->begin(),
 		this->end(),
@@ -166,14 +167,14 @@ self self::where(self::Predicate predicate) const{
 		predicate
 	);
 
-	self thisCopy{this};
+	self thisCopy{*this};
 	thisCopy.currentlySelected = tmp;
 	return self::getNext(thisCopy);
 };
 
 TEMPLATE
 self self::orWhere(self::Predicate predicate) const{
-	CONTAINER tmp = {};
+	CONTAINER tmp{};
 	std::copy_if(
 		this->oldOriginals.begin(),
 		this->oldOriginals.end(),
@@ -181,13 +182,13 @@ self self::orWhere(self::Predicate predicate) const{
 		predicate
 	);
 
-	self copy{this};
+	self copy{*this};
 
 	std::remove_copy_if(
 		tmp.begin(),
 		tmp.end(),
 		std::back_inserter(copy.currentlySelected),
-		utilsNamespace::VectorContainsAtIndex<T>(copy.currentlySelected)
+		utilsNamespace::LinqCompatibleContainsAtIndex<CONTAINER>(copy.currentlySelected)
 	);
 
 	return self(copy);
@@ -202,15 +203,15 @@ self self::andComplexWhere(self::WhereBuilder f) const{
 	/*auto contained = [&](const T& elem){
 		return std::find(built.begin(), built.end(), elem) != built.end();
 	};*/
-	return this->where(utilsNamespace::VectorContainsElem<T>(built.currentlySelected));
+	return this->where(utilsNamespace::LinqCompatibleContainsElem<T, Container>(built.currentlySelected));
 }
 
 	/****************************************************************************\
 	 * SELECT operations
 	\****************************************************************************/
 MAP_TPL
-thisClass<ReturnType> self::select(std::function<ReturnType(T)> mapper) const{
-	CONTAINER_OF<ReturnType> tmp = {};
+thisClass<ReturnType, Container> self::select(std::function<ReturnType(T)> mapper) const{
+	CONTAINER_OF<ReturnType> tmp{};
 	std::transform(
 		this->begin(),
 		this->end(),
@@ -218,7 +219,7 @@ thisClass<ReturnType> self::select(std::function<ReturnType(T)> mapper) const{
 		mapper
 	);
 
-	thisClass<ReturnType> ret = thisClass<ReturnType>::fromContainer(tmp);
+	thisClass<ReturnType, Container> ret = thisClass<ReturnType, Container>::fromContainer(tmp);
 //	ret.currentlySelected = tmp;
 //	ret.originals = tmp;
 //	ret.oldOriginals = tmp;
@@ -235,7 +236,7 @@ self self::select(self::SelfMapper mapper) const{
 		mapper
 	);
 
-	self clone{this};
+	self clone{*this};
 	clone.currentlySelected = tmp;
 	return self::getNext(clone);
 }
@@ -250,11 +251,13 @@ self self::select() const{
 
 REDUCER_TPL
 ReturnType self::selectReduced(std::function<ReturnType(ReturnType, T)> reducer, const ReturnType& acc) const{
-	ReturnType accumulator = acc;
+	/*ReturnType accumulator = acc;
 	for(T elem : *this)
 		accumulator = reducer(accumulator, elem);
 
-	return accumulator;
+	return accumulator;*/
+
+	return std::accumulate(this->cbegin(), this->cend(), acc, reducer);
 }
 
 	/****************************************************************************\
@@ -262,7 +265,7 @@ ReturnType self::selectReduced(std::function<ReturnType(ReturnType, T)> reducer,
 	\****************************************************************************/
 TRANSFORMER_TPL
 self self::orderAscBy(std::function<Member(T)> f) const{
-	self copy{this};
+	self copy{*this};
 	std::sort(
 		copy->begin(),
 		copy->end(),
@@ -279,7 +282,7 @@ self self::orderAsc() const{
 
 TRANSFORMER_TPL
 self self::orderDescBy(std::function<Member(T)> f) const{
-	self copy{this};
+	self copy{*this};
 
 	std::sort(
 		copy->begin(),
@@ -303,14 +306,14 @@ self self::limit(unsigned int limit) const{
 	if(this->length() < limit)
 		return *this;
 
-	self copy{this};
+	self copy{*this};
 
 	if(limit == 0){
-		copy.currentlySelected = {};
+		copy.currentlySelected = CONTAINER{};
 		return self::getNext(copy);
 	}
 
-	CONTAINER newCurrent = {};
+	CONTAINER newCurrent{};
 	for(unsigned int i = 0 ; i < limit ; i+=1)
 		newCurrent.push_back(this->currentlySelected[i]);
 
@@ -320,7 +323,7 @@ self self::limit(unsigned int limit) const{
 
 TEMPLATE
 self self::unique() const{
-	self copy{this};
+	self copy{*this};
 
 	std::set<T> asSet = this->packToSet();
 	self unique = self::from(asSet.begin(), asSet.end());
@@ -349,40 +352,45 @@ T* self::packToPointer() const{
 TEMPLATE
 std::vector<T> self::packToVector() const{
 	std::vector<T> ret;
-	for(T elem : *this)
-		ret.push_back(elem);
+	/*for(T elem : *this)
+		ret.push_back(elem);*/
+	std::copy(this->cbegin(), this->cend(), std::back_inserter(ret));
 	return ret;
 }
 
 TEMPLATE
 std::list<T> self::packToList() const{
 	std::list<T> ret;
-	for(T elem : *this)
-		ret.push_back(elem);
+	/*for(T elem : *this)
+		ret.push_back(elem);*/
+	std::copy(this->cbegin(), this->cend(), std::back_inserter(ret));
 	return ret;
 }
 
 TEMPLATE
 std::set<T> self::packToSet() const{
 	std::set<T> ret;
-	for(T elem : *this)
-		ret.insert(elem);
+	/*for(T elem : *this)
+		ret.insert(elem);*/
+	std::copy(this->cbegin(), this->cend(), std::inserter(ret, ret.begin()));
 	return ret;
 }
 
 TEMPLATE
 std::deque<T> self::packToDeque() const{
 	std::deque<T> ret;
-	for(T elem : *this)
-		ret.push_back(elem);
+	/*for(T elem : *this)
+		ret.push_back(elem);*/
+	std::copy(this->cbegin(), this->cend(), std::back_inserter(ret));
 	return ret;
 }
 
 TEMPLATE
 std::forward_list<T> self::packToForwardList() const{
 	std::forward_list<T> ret;
-	for(T elem : *this)
-		ret.push_front(elem);
+	/*for(T elem : *this)
+		ret.push_front(elem);*/
+	std::copy(this->cbegin(), this->cend(), std::front_inserter(ret));
 
 	ret.reverse();//Keep the order from the Linqable<T>
 	return ret;

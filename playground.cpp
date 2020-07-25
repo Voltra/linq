@@ -7,7 +7,8 @@
 
 using namespace std;
 using namespace linq::utils;
-using namespace helperFunctions;
+using namespace helperFunctions; //linq::utils::helperFunctions
+using namespace linq::types;
 
 void testLinqable();
 void testLinqable2();
@@ -32,7 +33,12 @@ int main() {
 //	testLinqable2();
 //	testLinqable3();
 //	testLinqable4();
-	testLinqable5();
+//	testLinqable5();
+
+	/*static_assert(
+		isLinqCompatible<LinqVector<int>>::value,
+		"Whoops, LinqVector<int> should be linq compatible"
+	);*/
 	return 0;
 }
 
@@ -181,7 +187,7 @@ void testLinqable5(){
 	vector<Employe> vect = {};
 	bool isAlive = true;
 	for(char c='a' ; c <= 'z' ; c+=1) {
-		vect.push_back(Employe{string{c}, isAlive});
+		vect.emplace_back(string{c}, isAlive);
 		isAlive = !isAlive;
 	}
 

@@ -4,6 +4,7 @@
 namespace linq{};
 
 #include "utils/utils.hpp"
+#include "types/types.hpp"
 #include "Linqable.h"
 #include "from.h"
 

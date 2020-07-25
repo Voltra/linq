@@ -2,6 +2,7 @@
 #define LINQ_FROM_H
 
 #include "Linqable.h"
+#include "types/types.hpp"
 
 namespace linq{
 	/**
@@ -12,9 +13,10 @@ namespace linq{
 	 * @param end being the iterator to the end of the container
 	 * @return a Linqable made from the elements contained in the container
 	 */
-	template <class T, class It>
-	inline Linqable<T> from(It begin, It end){
-		return Linqable<T>::from(begin, end);
+	template <class T, class It, template <class...> class Container = linq::types::LinqVector>
+	inline Linqable<T, Container> from(It begin, It end){
+		static_assert(linq::types::isLinqCompatible<Container<T>>::value, "The given container is not linq-compatible");
+		return Linqable<T, Container>::from(begin, end);
 	};
 };
 

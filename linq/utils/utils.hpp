@@ -11,9 +11,13 @@ namespace linq{
 
 #include "reducers/reducers.hpp"
 #include "helperFunctions/helperFunctions.hpp"
+#include "sfinae/sfinae.hpp"
 
 #include "VectorContainsAtIndex.h"
 #include "VectorContainsElem.h"
+
+#include "LinqCompatibleContainsAtIndex.h"
+#include "LinqCompatibleContainsElem.h"
 
 #include "TransformerLessThanComparator.h"
 #include "TransformerGreaterThanComparator.h"

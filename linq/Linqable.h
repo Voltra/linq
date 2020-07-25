@@ -8,10 +8,11 @@
 #include <forward_list>
 #include <functional>
 #include "utils/utils.hpp"
+#include "types/types.hpp"
 
-#define CONTAINER std::vector<T>
+#define CONTAINER Container<T>
 #define className linq::Linqable
-#define self className<T>
+#define self className<T, Container>
 #define constructor Linqable
 #define destructor ~Linqable
 
@@ -20,8 +21,10 @@ namespace linq{
 	 * A class that allows LINQ expressions/manipulations on a Container/Collection
 	 * @tparam T being the type of element the Linqable object operates on
 	 */
-	template <class T>
+	template <class T, template <class...> class Container = linq::types::LinqVector>
 	class Linqable {
+		static_assert(linq::types::isLinqCompatible<Container<T>>::value, "The given container is not linq-compatible");
+
 		public:
 			using value_type = T;
 			using reference = T&;
@@ -39,7 +42,7 @@ namespace linq{
 
 
 			using Predicate = std::function<bool(T)>;
-			using WhereBuilder = std::function<Linqable<T>(Linqable<T>)>;
+			using WhereBuilder = std::function<self(self)>;
 			using SelfMapper = std::function<T(T)>;
 
 		protected:
@@ -200,7 +203,7 @@ namespace linq{
 			 * Copy constructor (const*)
 			 * @param other being the Linqable to copy from
 			 */
-			constructor(const self* other);
+			//constructor(const self* other);
 
 
 
@@ -263,7 +266,7 @@ namespace linq{
 			 * @return a new Linqable of mapped elements
 			 */
 			template <class ReturnType>
-			className<ReturnType> select(std::function<ReturnType(T)> mapper) const;
+			className<ReturnType, Container> select(std::function<ReturnType(T)> mapper) const;
 
 			/**
 			 * Maps the currently selected elements to the same type
